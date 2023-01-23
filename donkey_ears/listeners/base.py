@@ -84,8 +84,8 @@ class BackgroundListener:
             except StopIteration:
                 logger.info("Background listener received StopIteration")
                 break
-            except Exception as ex:
-                logger.exception(f"Background listener received exception: {type(ex)}")
+            except Exception as exc:
+                logger.exception(f"Background listener received exception: {type(exc)}")
                 break
 
     def get(self) -> AudioSample:

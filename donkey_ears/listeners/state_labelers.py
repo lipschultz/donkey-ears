@@ -18,8 +18,7 @@ class TimeBasedStateLabeler(BaseStateLabeler):
         duration = sum(frame.frame.n_seconds for frame in all_frames) + latest_frame.n_seconds
         if duration < self.total_duration and len(latest_frame) > 0:
             return FrameStateEnum.LISTEN
-        else:
-            return FrameStateEnum.STOP
+        return FrameStateEnum.STOP
 
 
 class SilenceBasedStateLabeler(BaseStateLabeler):
@@ -30,9 +29,7 @@ class SilenceBasedStateLabeler(BaseStateLabeler):
     def __call__(self, latest_frame: AudioSample, all_frames: List[AnnotatedFrame]) -> FrameStateEnum:
         if latest_frame.rms > self.silence_threshold_rms:
             return FrameStateEnum.LISTEN
-        else:
-            if len(all_frames) == 0 or all_frames[-1].state == FrameStateEnum.PAUSE:
-                # Haven't started listening yet
-                return FrameStateEnum.PAUSE
-            else:
-                return FrameStateEnum.STOP
+        if len(all_frames) == 0 or all_frames[-1].state == FrameStateEnum.PAUSE:
+            # Haven't started listening yet
+            return FrameStateEnum.PAUSE
+        return FrameStateEnum.STOP

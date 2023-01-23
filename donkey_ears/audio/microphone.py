@@ -1,5 +1,5 @@
 import io
-from typing import List, Optional
+from typing import List, Mapping, Optional
 
 import pyaudio
 from pydub import AudioSegment
@@ -12,37 +12,37 @@ class Microphone(BaseAudioSource):
         """
         The ``device_index`` is used to tell PyAudio which audio device to listen on.
         """
-        pa = pyaudio.PyAudio()
+        pa_instance = pyaudio.PyAudio()
 
         assert device_index is None or (
-            isinstance(device_index, int) and 0 <= device_index < pa.get_device_count()
-        ), f"device_index must be None or positive integer between 0 and {pa.get_device_count()}, got: {device_index!r}"
+            isinstance(device_index, int) and 0 <= device_index < pa_instance.get_device_count()
+        ), f"device_index must be None or positive integer between 0 and {pa_instance.get_device_count()}, got: {device_index!r}"
 
         self._device_index = device_index
         self.DEFAULT_READ_DURATION_SECONDS = 5
 
     @classmethod
     def get_device_names(cls) -> List[str]:
-        pa = pyaudio.PyAudio()
+        pa_instance = pyaudio.PyAudio()
         try:
-            return [pa.get_device_info_by_index(i).get("name") for i in range(pa.get_device_count())]
+            return [pa_instance.get_device_info_by_index(i).get("name") for i in range(pa_instance.get_device_count())]
         finally:
-            pa.terminate()
+            pa_instance.terminate()
 
     @property
     def device_index(self) -> Optional[int]:
         return self._device_index
 
     @property
-    def audio_device_information(self) -> dict:
-        pa = pyaudio.PyAudio()
+    def audio_device_information(self) -> Mapping:
+        pa_instance = pyaudio.PyAudio()
         try:
             if self.device_index is None:
-                return pa.get_default_input_device_info()
-            else:
-                return pa.get_device_info_by_index(self.device_index)
+                return pa_instance.get_default_input_device_info()
+
+            return pa_instance.get_device_info_by_index(self.device_index)
         finally:
-            pa.terminate()
+            pa_instance.terminate()
 
     @property
     def frame_rate(self) -> int:
@@ -66,16 +66,16 @@ class Microphone(BaseAudioSource):
 
     @property
     def DEFAULT_READ_DURATION_FRAMES(self) -> int:
-        return self.seconds_to_frames(self.DEFAULT_READ_DURATION_SECONDS)
+        return self.seconds_to_frame(self.DEFAULT_READ_DURATION_SECONDS)
 
     def read_bytes(self, n_frames: int) -> bytes:
         assert (
             isinstance(n_frames, int) and n_frames > 0
         ), f"n_frames must be an integer greater than zero, got {n_frames!r}"
 
-        pa = pyaudio.PyAudio()
+        pa_instance = pyaudio.PyAudio()
         try:
-            audio_source = pa.open(
+            audio_source = pa_instance.open(
                 input_device_index=self.device_index,
                 channels=self.n_channels,
                 format=self._pyaudio_format,
@@ -84,7 +84,7 @@ class Microphone(BaseAudioSource):
             )
             return audio_source.read(n_frames, exception_on_overflow=False)
         finally:
-            pa.terminate()
+            pa_instance.terminate()
 
     def read_pydub(self, n_frames: int) -> AudioSegment:
         with io.BytesIO(self.read_bytes(n_frames)) as fp:
