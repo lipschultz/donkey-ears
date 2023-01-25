@@ -13,10 +13,13 @@ class Microphone(BaseAudioSource):
         The ``device_index`` is used to tell PyAudio which audio device to listen on.
         """
         pa_instance = pyaudio.PyAudio()
+        device_count = pa_instance.get_device_count()
+        pa_instance.terminate()
 
-        assert device_index is None or (
-            isinstance(device_index, int) and 0 <= device_index < pa_instance.get_device_count()
-        ), f"device_index must be None or positive integer between 0 and {pa_instance.get_device_count()}, got: {device_index!r}"
+        if not (device_index is None or (isinstance(device_index, int) and 0 <= device_index < device_count)):
+            raise ValueError(
+                f"device_index must be None or positive integer between 0 and {device_count}, got: {device_index!r}"
+            )
 
         self._device_index = device_index
         self.DEFAULT_READ_DURATION_SECONDS = 5
@@ -87,6 +90,9 @@ class Microphone(BaseAudioSource):
             pa_instance.terminate()
 
     def read_pydub(self, n_frames: int) -> AudioSegment:
+        """
+        Read n_frames from the microphone and return a pydub.AudioSegment object.
+        """
         with io.BytesIO(self.read_bytes(n_frames)) as fp:
             return AudioSegment.from_raw(
                 fp,
