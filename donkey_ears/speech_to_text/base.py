@@ -48,7 +48,7 @@ class BaseSpeechToText:
     def transcribe_audio_detailed(
         self, audio: AudioSample, *, n_transcriptions: int = 3, segment_timestamps: bool = True
     ) -> DetailedTranscripts:
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
 
     def transcribe_audio(self, audio: AudioSample) -> str:
         return self.transcribe_audio_detailed(audio, n_transcriptions=1).best_transcript.text

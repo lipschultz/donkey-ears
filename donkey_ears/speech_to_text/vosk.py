@@ -23,11 +23,21 @@ class VoskSpeechToText(BaseSpeechToText):
         n_channels: int = N_CHANNELS,
     ):
         super().__init__()
-        self.model_path = model_path
+        self._model = None  # type: Model
+        self._recognizer = None  # type: KaldiRecognizer
         self.frame_rate = frame_rate
         self.bit_depth = bit_depth
         self.n_channels = n_channels
 
+        self.model_path = model_path
+
+    @property
+    def model_path(self) -> Union[str, Path]:
+        return self._model_path
+
+    @model_path.setter
+    def model_path(self, model_path: Union[str, Path]):
+        self._model_path = model_path
         self._model = Model(self.model_path)
         self._recognizer = KaldiRecognizer(self._model, self.frame_rate)
 
