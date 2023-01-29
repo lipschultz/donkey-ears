@@ -37,5 +37,6 @@ jobs:
           poetry run python -m pytest --durations=5 --durations-min=0.04 --cov=donkey_ears/ --cov-report term-missing:skip-covered
 
       - name: Pre-Commit Checks
-        run:
+        run: |
+          poetry run pre-commit install --install-hooks
           poetry run pre-commit run --all-files
