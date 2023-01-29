@@ -23,7 +23,12 @@ class WhisperSpeechToText(BaseSpeechToText):
         self.download_root = download_root
         self.in_memory = in_memory
 
-        self._model = whisper.load_model(self.model_name, self.device, str(self.download_root), self.in_memory)
+        self._model = whisper.load_model(
+            self.model_name,
+            self.device,
+            str(self.download_root) if self.download_root is not None else None,
+            self.in_memory,
+        )
 
     def transcribe_audio_detailed(
         self,
