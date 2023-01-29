@@ -36,8 +36,8 @@ Donkey Ears provides support for four speech to text engines:
 * [Vosk](https://alphacephei.com/vosk/)
 * [Whisper](https://github.com/openai/whisper)
 
-Many of these engines require a model to be downloaded before they can be used.
-You must find and download the model before the engine can be used.
+Many engines require a model for the language you want to transcribe.
+You must find and download the model before the engine can be used (it will be required in the class's initializer).
 
 ## Quick Start
 
@@ -64,9 +64,9 @@ sample = mic.read_seconds(3)
 ### Transcription
 
 Create an instance of the speech-to-text class you want to use.
-You'll need to have installed the specific extra for it  and downloaded the model.
-Other than the initializer, the API for the classes is the same so the examples will work for any speech-to-text class.
-To demonstrate, the Vosk and Whisper classes will be used.
+The classes share a core set of methods for transcribing audio, described below.
+They primarily differ in the initializer and potentially some extra methods for engine-specific features.
+To demonstrate the overall similarity, the Vosk and Whisper classes will be used.
 
 ```python
 from donkey_ears.speech_to_text.vosk import VoskSpeechToText
@@ -165,3 +165,61 @@ Each `DetailedTranscript` dataclass instance has three attributes:
 * `segments`: A list of start and end segments of the audio corresponding to parts of the transcript
   * Different models will handle this differently.  In some cases each word will be its own segment whereas in other
     cases multiple words will be in one segment
+
+
+## Listeners (Streaming Transcription)
+
+The listeners module (`donkey_ears.listeners`) contains classes for working with streaming audio, such as from the
+microphone.
+A listener class will listen to the audio until a certain condition is met, then return the audio recorded as an
+`AudioSample` instance.
+The exact condition to wait for depends on the listener.
+For example, the `donkey_ears.listeners.prebuilt.TimeBasedListener` class will record audio for a specified duration
+whereas the `SilenceBasedListener` will wait until a chunk of audio is below a specified rms.
+Other listeners can be constructed by inheriting from the `donkey_ears.listeners.base.BaseListener` class.
+
+The example below will record audio until talking stops (i.e. the rms drops to the level of non-talking).
+```python
+from donkey_ears.audio.microphone import Microphone
+from donkey_ears.listeners.prebuilt import SilenceBasedListener
+
+mic = Microphone()
+
+# Determine what the rms when there isn't any speaking
+non_speaking_audio = mic.read_seconds(2)
+non_speaking_threshold = non_speaking_audio.rms
+
+# Create the listener
+listener = SilenceBasedListener(mic, non_speaking_threshold)
+speech = listener.listen()
+# `speech` can then be given to a speech-to-text instance for transcription
+```
+
+Note that any audio between calls to `listen` will not be recorded.
+To constantly listen, create a background listener, which will constantly record audio samples using the listener it was
+created from.
+The samples are added to a queue and can be retrieved using the background listener's `get` method.
+To stop the background listener, call the `stop` method.
+
+```python
+from donkey_ears.audio.microphone import Microphone
+from donkey_ears.listeners.prebuilt import SilenceBasedListener
+
+mic = Microphone()
+
+# Determine what the rms when there isn't any speaking
+non_speaking_audio = mic.read_seconds(2)
+non_speaking_threshold = non_speaking_audio.rms
+
+# Create the listener and background listener
+listener = SilenceBasedListener(mic, non_speaking_threshold)
+bg_listener = listener.background_listen()
+
+first_speech = bg_listener.get()
+# process `first_speech`, perhaps by transcribing it
+
+second_speech = bg_listener.get()
+# ...
+
+bg_listener.stop()
+```
