@@ -3,26 +3,70 @@ from unittest.mock import MagicMock
 import pytest
 
 from donkey_ears.audio.base import AudioSample
-from donkey_ears.listeners.base import ContinuousBaseListener, NoAudioAvailable
+from donkey_ears.listeners.base import BaseContinuousListener, BaseListener, NoAudioAvailable
+
+
+class TestBaseListener:
+    @staticmethod
+    def test_read_sample():
+        audio_source = MagicMock()
+        audio_source.read = MagicMock(return_value=AudioSample.generate_silence(1, 44100))
+        subject = BaseListener(audio_source)
+
+        actual = subject.read()
+
+        audio_source.read.assert_called_once()
+        assert actual == AudioSample.generate_silence(1, 44100)
+
+    @staticmethod
+    def test_chunk_size_passed_to_source_read_method():
+        audio_source = MagicMock()
+        audio_source.read = MagicMock(return_value=AudioSample.generate_silence(1, 44100))
+        subject = BaseListener(audio_source)
+
+        subject.read(22050)
+
+        audio_source.read.assert_called_once_with(22050)
+
+    @staticmethod
+    def test_no_audio_available():
+        audio_source = MagicMock()
+        audio_source.read = MagicMock(side_effect=EOFError)
+        subject = BaseListener(audio_source)
+
+        with pytest.raises(EOFError):
+            subject.read()
+
+    @staticmethod
+    def test_iterating_over_listener_returns_samples_recorded():
+        audio_source = MagicMock()
+        audio_source.read = MagicMock(
+            side_effect=[AudioSample.generate_silence(1, 44100), AudioSample.generate_silence(2, 44100), EOFError]
+        )
+        subject = BaseListener(audio_source)
+
+        results = list(subject)
+
+        assert results == [AudioSample.generate_silence(1, 44100), AudioSample.generate_silence(2, 44100)]
 
 
 class TestContinuousBaseListener:
     @staticmethod
     def test_is_listening_returns_false_after_creation():
-        subject = ContinuousBaseListener(MagicMock())
+        subject = BaseContinuousListener(MagicMock())
 
         assert subject.is_listening is False
 
     @staticmethod
     def test_is_listening_returns_true_after_starting():
-        subject = ContinuousBaseListener(MagicMock())
+        subject = BaseContinuousListener(MagicMock())
         subject.start()
 
         assert subject.is_listening is True
 
     @staticmethod
     def test_is_listening_returns_false_after_starting_then_stopping():
-        subject = ContinuousBaseListener(MagicMock())
+        subject = BaseContinuousListener(MagicMock())
         subject.start()
         subject.stop()
 
@@ -32,7 +76,7 @@ class TestContinuousBaseListener:
     def test_source_read_called_when_listener_started():
         audio_source = MagicMock()
         audio_source.read = MagicMock()
-        subject = ContinuousBaseListener(audio_source)
+        subject = BaseContinuousListener(audio_source)
         subject.start()
         subject.stop()
 
@@ -42,7 +86,7 @@ class TestContinuousBaseListener:
     def test_source_audio_added_to_queue():
         audio_source = MagicMock()
         audio_source.read = MagicMock(side_effect=[AudioSample.generate_silence(1, 44100), EOFError])
-        subject = ContinuousBaseListener(audio_source)
+        subject = BaseContinuousListener(audio_source)
         subject.start()
         subject.stop()
 
@@ -54,7 +98,7 @@ class TestContinuousBaseListener:
     def test_read():
         audio_source = MagicMock()
         audio_source.read = MagicMock(side_effect=[AudioSample.generate_silence(1, 44100), EOFError])
-        subject = ContinuousBaseListener(audio_source)
+        subject = BaseContinuousListener(audio_source)
         subject.start()
         subject.stop()
 
@@ -64,7 +108,7 @@ class TestContinuousBaseListener:
 
     @staticmethod
     def test_read_raises_exception_when_not_listening_and_queue_empty():
-        subject = ContinuousBaseListener(MagicMock())
+        subject = BaseContinuousListener(MagicMock())
 
         with pytest.raises(NoAudioAvailable):
             subject.read()
@@ -83,7 +127,7 @@ class TestContinuousBaseListener:
     def test_read_passes_arguments_to_queue_get(wait, expected_blocking, expected_timeout):
         audio_source = MagicMock()
         audio_source.read = MagicMock(side_effect=[AudioSample.generate_silence(1, 44100), EOFError])
-        subject = ContinuousBaseListener(audio_source)
+        subject = BaseContinuousListener(audio_source)
         subject.queue = MagicMock()
         subject.queue.get = MagicMock()
         subject.queue.empty = MagicMock(return_value=False)
@@ -97,13 +141,13 @@ class TestContinuousBaseListener:
 
     @staticmethod
     def test_empty_returns_true_when_not_started():
-        subject = ContinuousBaseListener(MagicMock())
+        subject = BaseContinuousListener(MagicMock())
 
         assert subject.empty() is True
 
     @staticmethod
     def test_empty_returns_false_when_audio_recorded():
-        subject = ContinuousBaseListener(MagicMock())
+        subject = BaseContinuousListener(MagicMock())
         subject.start()
         subject.stop()
 
@@ -113,7 +157,7 @@ class TestContinuousBaseListener:
     def test_empty_returns_true_when_audio_recorded_but_queue_has_been_emptied():
         audio_source = MagicMock()
         audio_source.read = MagicMock(side_effect=[AudioSample.generate_silence(1, 44100), EOFError])
-        subject = ContinuousBaseListener(audio_source)
+        subject = BaseContinuousListener(audio_source)
         subject.start()
         subject.stop()
 

@@ -22,7 +22,7 @@ class Microphone(BaseAudioSource):
             )
 
         self._device_index = device_index
-        self.DEFAULT_READ_DURATION_SECONDS = 5
+        self.DEFAULT_READ_DURATION_SECONDS = 5  # pylint: disable=invalid-name
 
     @classmethod
     def get_device_names(cls) -> List[str]:
@@ -68,7 +68,7 @@ class Microphone(BaseAudioSource):
         return pyaudio.get_sample_size(self._pyaudio_format)
 
     @property
-    def DEFAULT_READ_DURATION_FRAMES(self) -> int:
+    def DEFAULT_READ_DURATION_FRAMES(self) -> int:  # pylint: disable=invalid-name
         return self.seconds_to_frame(self.DEFAULT_READ_DURATION_SECONDS)
 
     def read_bytes(self, n_frames: int) -> bytes:

@@ -1,10 +1,10 @@
-from typing import Callable, List, Optional
+from typing import List
 
 from donkey_ears.audio.base import AudioSample, BaseAudioSource, TimeType
-from donkey_ears.listeners.base import AnnotatedFrame, BaseListener, FrameStateEnum
+from donkey_ears.listeners.base import AnnotatedFrame, BaseStateContinuousListener, FrameStateEnum
 
 
-class TimeBasedListener(BaseListener):
+class TimeBasedListener(BaseStateContinuousListener):
     def __init__(self, source: BaseAudioSource, total_duration: TimeType):
         super().__init__(source)
         self.total_duration = total_duration
@@ -16,7 +16,7 @@ class TimeBasedListener(BaseListener):
         return FrameStateEnum.STOP
 
 
-class SilenceBasedListener(BaseListener):
+class SilenceBasedListener(BaseStateContinuousListener):
     def __init__(self, source: BaseAudioSource, silence_threshold_rms: int = 500):
         super().__init__(source)
         self.silence_threshold_rms = silence_threshold_rms
@@ -28,46 +28,3 @@ class SilenceBasedListener(BaseListener):
             # Haven't started listening yet
             return FrameStateEnum.PAUSE
         return FrameStateEnum.STOP
-
-
-class ConfigurableListener(BaseListener):
-    def __init__(
-        self,
-        source: BaseAudioSource,
-        determine_frame_state: Callable,
-        *,
-        pre_process_individual_audio_sample: Optional[Callable] = None,
-        filter_audio_samples: Optional[Callable] = None,
-        join_audio_samples: Optional[Callable] = None,
-        post_process_final_audio_sample: Optional[Callable] = None,
-    ):
-        super().__init__(source)
-
-        self._determine_frame_state_fn = determine_frame_state
-        self._pre_process_individual_audio_sample_fn = pre_process_individual_audio_sample
-        self._filter_audio_samples_fn = filter_audio_samples
-        self._join_audio_samples_fn = join_audio_samples
-        self._post_process_final_audio_sample_fn = post_process_final_audio_sample
-
-    def _determine_frame_state(self, latest_frame: AudioSample, all_frames: List[AnnotatedFrame]) -> FrameStateEnum:
-        return self._determine_frame_state_fn(latest_frame, all_frames)
-
-    def _pre_process_individual_audio_sample(self, audio: AudioSample) -> AudioSample:
-        if self._pre_process_individual_audio_sample_fn is None:
-            return super()._pre_process_individual_audio_sample(audio)
-        return self._pre_process_individual_audio_sample_fn(audio)
-
-    def _filter_audio_samples(self, all_frames: List[AnnotatedFrame]) -> List[AnnotatedFrame]:
-        if self._filter_audio_samples_fn is None:
-            return super()._filter_audio_samples(all_frames)
-        return self._filter_audio_samples_fn(all_frames)
-
-    def _join_audio_samples(self, all_frames: List[AnnotatedFrame]) -> AudioSample:
-        if self._join_audio_samples_fn is None:
-            return super()._join_audio_samples(all_frames)
-        return self._join_audio_samples_fn(all_frames)
-
-    def _post_process_final_audio_sample(self, audio: AudioSample) -> AudioSample:
-        if self._post_process_final_audio_sample_fn is None:
-            return super()._post_process_final_audio_sample(audio)
-        return self._post_process_final_audio_sample_fn(audio)
