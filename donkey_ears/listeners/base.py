@@ -1,26 +1,12 @@
 import itertools
 import queue
 import threading
-from dataclasses import dataclass
-from enum import Enum
 from queue import SimpleQueue
 from typing import Optional, Union
 
 from loguru import logger
 
 from donkey_ears.audio.base import AudioSample, BaseAudioSource
-
-
-class FrameStateEnum(Enum):
-    LISTEN = "LISTEN"
-    PAUSE = "PAUSE"
-    STOP = "STOP"
-
-
-@dataclass
-class AnnotatedFrame:
-    frame: AudioSample
-    state: FrameStateEnum
 
 
 class ListenerRunningError(Exception):
@@ -52,8 +38,8 @@ class BaseListener:
 
 
 class BaseContinuousListener:
-    def __init__(self, source: BaseAudioSource):
-        self.source = source
+    def __init__(self, listener: BaseListener):
+        self.listener = listener
         self._thread = None
         self.queue = SimpleQueue()
         self._please_shutdown_thread = False
@@ -98,9 +84,9 @@ class BaseContinuousListener:
 
     def _get_audio(self) -> AudioSample:
         """
-        Record audio from the source and return it.
+        Record audio from the listener and return it.
         """
-        return self.source.read(None)
+        return self.listener.read()
 
     def _listen(self):
         """
