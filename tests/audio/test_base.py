@@ -6,7 +6,7 @@ import pytest
 from donkey_ears.audio import base
 
 
-class TestAudioSample:
+class TestAudioSample:  # pylint: disable=too-few-public-methods
     def test_from_to_numpy_array(self):
         input_numpy_array = (10_000 * np.sin(np.linspace(0, 4, 1_000_000))).astype("int16")
 
@@ -87,8 +87,13 @@ class TestAudioSample:
 
         assert (actual_sample == expected_sample).all()
 
+    def test_len_is_number_of_samples(self):
+        subject = base.AudioSample.from_numpy((10_000 * np.sin(np.linspace(0, 4, 5_000))).astype("int16"), 44100)
 
-class TestBaseAudioSource:
+        assert len(subject) == 5_000
+
+
+class TestBaseAudioSource:  # pylint: disable=too-few-public-methods
     @pytest.mark.parametrize("seconds", [7, 11.12])
     def test_seconds_to_frame(self, seconds):
         class SubjectBaseAudioSource(base.BaseAudioSource):
