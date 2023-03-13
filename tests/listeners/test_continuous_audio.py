@@ -59,8 +59,33 @@ class TestContinuousListener:
         subject.stop()
 
         result = subject.read()
+
         assert result == AudioSample.generate_silence(1, 44100)
         assert subject.empty()
+
+    @staticmethod
+    def test_read_while_started():
+        listener = MagicMock()
+        listener.read = MagicMock(side_effect=[AudioSample.generate_silence(1, 44100), EOFError])
+        subject = ContinuousListener(listener)
+        subject.start()
+
+        result = subject.read()
+        subject.stop()
+
+        assert result == AudioSample.generate_silence(1, 44100)
+        assert subject.empty()
+
+    @staticmethod
+    def test_read_raises_exception_when_listener_immediately_raises_eoferror():
+        listener = MagicMock()
+        listener.read = MagicMock(side_effect=[EOFError])
+        subject = ContinuousListener(listener)
+        subject.start()
+        subject.stop()
+
+        with pytest.raises(NoAudioAvailable):
+            subject.read()
 
     @staticmethod
     def test_read_raises_exception_when_not_listening_and_queue_empty():
@@ -120,3 +145,17 @@ class TestContinuousListener:
         subject.read(False)
 
         assert subject.empty() is True
+
+    @staticmethod
+    def test_iterating_over_listener_returns_samples_recorded():
+        listener = MagicMock()
+        listener.read = MagicMock(
+            side_effect=[AudioSample.generate_silence(1, 44100), AudioSample.generate_silence(2, 44100), EOFError]
+        )
+        subject = ContinuousListener(listener)
+        subject.start()
+        subject.stop()
+
+        results = list(subject)
+
+        assert results == [AudioSample.generate_silence(1, 44100), AudioSample.generate_silence(2, 44100)]

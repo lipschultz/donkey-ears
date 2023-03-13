@@ -1,3 +1,4 @@
+import itertools
 import queue
 import threading
 from typing import Optional, Union
@@ -122,3 +123,11 @@ class ContinuousListener:
         Returns True if there is nothing currently available to read, False otherwise.
         """
         return self._recordings.empty()
+
+    def __iter__(self):
+        for _ in itertools.count():
+            try:
+                frame = self.read()
+                yield frame
+            except NoAudioAvailable:
+                return None
