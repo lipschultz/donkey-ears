@@ -38,10 +38,15 @@ class BaseListener:
 
 
 class BaseContinuousListener:
+    """
+    Always listen to the source, storing audio segments to be accessed later (via ``read``).
+    """
+
     def __init__(self, listener: BaseListener):
         self.listener = listener
+
         self._thread = None
-        self.queue = SimpleQueue()
+        self._recordings = SimpleQueue()
         self._please_shutdown_thread = False
 
     def start(self) -> None:
@@ -88,6 +93,9 @@ class BaseContinuousListener:
         """
         return self.listener.read()
 
+    def _store_recording(self, audio: AudioSample) -> None:
+        self._recordings.put(audio)
+
     def _listen(self):
         """
         The method that does the actual listening and adding the audio to a queue.
@@ -96,15 +104,15 @@ class BaseContinuousListener:
             try:
                 audio = self._get_audio()
                 # logger.debug(f"Received audio: {audio}")
-                self.queue.put(audio)
+                self._store_recording(audio)
             except EOFError:
-                logger.info("Background listener reached end of file")
+                logger.info("Continuous listener reached end of file")
                 break
             except StopIteration:
-                logger.info("Background listener received StopIteration")
+                logger.info("Continuous listener received StopIteration")
                 break
             except Exception as exc:
-                logger.exception(f"Background listener received exception: {type(exc)}")
+                logger.exception(f"Continuous listener received exception: {type(exc)}")
                 break
 
     def read(self, wait: Union[int, float, bool] = True) -> AudioSample:
@@ -126,7 +134,7 @@ class BaseContinuousListener:
         blocking = not (wait is False or wait == 0)
         timeout = wait if isinstance(wait, (int, float)) and not isinstance(wait, bool) and wait > 0 else None
         try:
-            return self.queue.get(blocking, timeout)
+            return self._recordings.get(blocking, timeout)
         except queue.Empty:
             raise NoAudioAvailable()
 
@@ -134,4 +142,4 @@ class BaseContinuousListener:
         """
         Returns True if there is nothing currently available to read, False otherwise.
         """
-        return self.queue.empty()
+        return self._recordings.empty()

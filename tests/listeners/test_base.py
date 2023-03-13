@@ -90,7 +90,7 @@ class TestBaseContinuousListener:
         subject.start()
         subject.stop()
 
-        result = subject.queue.get()
+        result = subject._recordings.get()
         assert result == AudioSample.generate_silence(1, 44100)
         assert subject.empty()
 
@@ -128,16 +128,16 @@ class TestBaseContinuousListener:
         listener = MagicMock()
         listener.read = MagicMock(side_effect=[AudioSample.generate_silence(1, 44100), EOFError])
         subject = BaseContinuousListener(listener)
-        subject.queue = MagicMock()
-        subject.queue.get = MagicMock()
-        subject.queue.empty = MagicMock(return_value=False)
+        subject._recordings = MagicMock()
+        subject._recordings.get = MagicMock()
+        subject._recordings.empty = MagicMock(return_value=False)
         subject.start()
         subject.stop()
 
         subject.read(wait)
 
-        subject.queue.get.assert_called_once()
-        subject.queue.get.assert_called_once_with(expected_blocking, expected_timeout)
+        subject._recordings.get.assert_called_once()
+        subject._recordings.get.assert_called_once_with(expected_blocking, expected_timeout)
 
     @staticmethod
     def test_empty_returns_true_when_not_started():
