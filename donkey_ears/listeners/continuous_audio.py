@@ -5,7 +5,7 @@ from typing import Optional, Union
 from loguru import logger
 
 from donkey_ears.audio.base import AudioSample
-from donkey_ears.listeners.base import BaseListener
+from donkey_ears.listeners.raw_audio import BaseListener
 
 
 class NoAudioAvailable(Exception):
