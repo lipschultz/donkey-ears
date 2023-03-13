@@ -1,7 +1,13 @@
 from unittest.mock import MagicMock
 
 from donkey_ears.audio.base import AudioSample
-from donkey_ears.listeners.state_based import AnnotatedFrame, BaseStateListener, FrameStateEnum, SilenceBasedListener
+from donkey_ears.listeners.state_based import (
+    AnnotatedFrame,
+    BaseStateListener,
+    FrameStateEnum,
+    SilenceBasedListener,
+    TimeBasedListener,
+)
 
 
 class TestBaseStateListener:
@@ -258,5 +264,77 @@ class TestSilenceBasedListener:
         latest_frame.rms = 0
 
         actual = subject._determine_frame_state(latest_frame, [AnnotatedFrame(MagicMock(), FrameStateEnum.LISTEN)])
+
+        assert actual == FrameStateEnum.STOP
+
+
+class TestTimeBasedListener:
+    @staticmethod
+    def test_first_frame_labeled_listen_if_shorter_than_total_duration():
+        subject = TimeBasedListener(MagicMock(), 10)
+        latest_frame = MagicMock()
+        latest_frame.n_seconds = 1
+        latest_frame.__len__ = MagicMock(return_value=44100)
+
+        actual = subject._determine_frame_state(latest_frame, [])
+
+        assert actual == FrameStateEnum.LISTEN
+
+    @staticmethod
+    def test_first_frame_labeled_listen_if_equal_to_total_duration():
+        subject = TimeBasedListener(MagicMock(), 1)
+        latest_frame = MagicMock()
+        latest_frame.n_seconds = 1
+        latest_frame.__len__ = MagicMock(return_value=44100)
+
+        actual = subject._determine_frame_state(latest_frame, [])
+
+        assert actual == FrameStateEnum.LISTEN
+
+    @staticmethod
+    def test_first_frame_labeled_listen_if_longer_than_total_duration():
+        subject = TimeBasedListener(MagicMock(), 1)
+        latest_frame = MagicMock()
+        latest_frame.n_seconds = 2
+        latest_frame.__len__ = MagicMock(return_value=2 * 44100)
+
+        actual = subject._determine_frame_state(latest_frame, [])
+
+        assert actual == FrameStateEnum.LISTEN
+
+    @staticmethod
+    def test_first_frame_labeled_pause_if_frame_has_no_duration():
+        subject = TimeBasedListener(MagicMock(), 1)
+        latest_frame = MagicMock()
+        latest_frame.n_seconds = 0
+        latest_frame.__len__ = MagicMock(return_value=0)
+
+        actual = subject._determine_frame_state(latest_frame, [])
+
+        assert actual == FrameStateEnum.PAUSE
+
+    @staticmethod
+    def test_frame_labeled_pause_if_frame_has_no_duration():
+        subject = TimeBasedListener(MagicMock(), 10)
+        latest_frame = MagicMock()
+        latest_frame.n_seconds = 0
+        latest_frame.__len__ = MagicMock(return_value=0)
+        existing_frame = MagicMock()
+        existing_frame.n_seconds = 1
+
+        actual = subject._determine_frame_state(latest_frame, [AnnotatedFrame(existing_frame, FrameStateEnum.LISTEN)])
+
+        assert actual == FrameStateEnum.PAUSE
+
+    @staticmethod
+    def test_frame_labeled_stop_if_frame_pushes_duration_over_total():
+        subject = TimeBasedListener(MagicMock(), 10)
+        latest_frame = MagicMock()
+        latest_frame.n_seconds = 1
+        latest_frame.__len__ = MagicMock(return_value=44100)
+        existing_frame = MagicMock()
+        existing_frame.n_seconds = 10
+
+        actual = subject._determine_frame_state(latest_frame, [AnnotatedFrame(existing_frame, FrameStateEnum.LISTEN)])
 
         assert actual == FrameStateEnum.STOP

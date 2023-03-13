@@ -1,8 +1,9 @@
+import math
 from dataclasses import dataclass
 from enum import Enum
 from typing import List
 
-from donkey_ears.audio.base import AudioSample, BaseAudioSource
+from donkey_ears.audio.base import AudioSample, BaseAudioSource, TimeType
 from donkey_ears.listeners.base import BaseListener
 
 
@@ -132,3 +133,32 @@ class SilenceBasedListener(BaseStateListener):
             # Haven't started listening yet
             return FrameStateEnum.PAUSE
         return FrameStateEnum.STOP
+
+
+class TimeBasedListener(BaseStateListener):
+    """
+    Listen to the audio source and return an audio sample that is ``total_duration`` seconds long.
+    """
+
+    def __init__(self, source: BaseAudioSource, total_duration: TimeType):
+        super().__init__(source)
+        self.total_duration = total_duration
+
+    def _determine_frame_state(self, latest_frame: AudioSample, all_frames: List[AnnotatedFrame]) -> FrameStateEnum:
+        duration = sum(frame.frame.n_seconds for frame in all_frames) + latest_frame.n_seconds
+        print(f"{duration=}, {self.total_duration=}, {latest_frame.n_seconds=}, {len(latest_frame)=}")
+        if len(latest_frame) == 0:
+            return FrameStateEnum.PAUSE
+        elif duration <= self.total_duration or len(all_frames) == 0:
+            return FrameStateEnum.LISTEN
+        return FrameStateEnum.STOP
+
+    def read(self, n_frames: int = 2**14) -> AudioSample:
+        """
+        Read samples from the source until the total duration is reached.  ``n_frames`` is the suggested size for each
+        sample.  The number will be adjusted so that an integer number of samples is required to get the total duration.
+        """
+        total_duration_frames = self.total_duration * self.source.frame_rate
+        n_recordings = round(total_duration_frames / n_frames)
+        adjusted_n_frames = math.ceil(total_duration_frames / n_recordings)
+        return super().read(adjusted_n_frames)
