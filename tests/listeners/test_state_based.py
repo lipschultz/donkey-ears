@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock
 
 from donkey_ears.audio.base import AudioSample
-from donkey_ears.listeners.state_based import AnnotatedFrame, BaseStateListener, FrameStateEnum
+from donkey_ears.listeners.state_based import AnnotatedFrame, BaseStateListener, FrameStateEnum, SilenceBasedListener
 
 
 class TestBaseStateListener:
@@ -218,3 +218,45 @@ class TestBaseStateListener:
         subject._join_audio_samples.assert_called_once_with(filtered_frames_heard)
         subject._post_process_final_audio_sample.assert_called_once_with(joined_sample)
         assert actual == post_processed_sample
+
+
+class TestSilenceBasedListener:
+    @staticmethod
+    def test_frame_above_threshold_is_labeled_listen():
+        subject = SilenceBasedListener(MagicMock(), 10)
+        latest_frame = MagicMock()
+        latest_frame.rms = 200
+
+        actual = subject._determine_frame_state(latest_frame, [])
+
+        assert actual == FrameStateEnum.LISTEN
+
+    @staticmethod
+    def test_frame_below_threshold_with_no_previous_frames_is_labeled_pause():
+        subject = SilenceBasedListener(MagicMock(), 10)
+        latest_frame = MagicMock()
+        latest_frame.rms = 0
+
+        actual = subject._determine_frame_state(latest_frame, [])
+
+        assert actual == FrameStateEnum.PAUSE
+
+    @staticmethod
+    def test_frame_below_threshold_with_previous_frame_labeled_pause_is_labeled_pause():
+        subject = SilenceBasedListener(MagicMock(), 10)
+        latest_frame = MagicMock()
+        latest_frame.rms = 0
+
+        actual = subject._determine_frame_state(latest_frame, [AnnotatedFrame(MagicMock(), FrameStateEnum.PAUSE)])
+
+        assert actual == FrameStateEnum.PAUSE
+
+    @staticmethod
+    def test_frame_below_threshold_with_previous_frame_labeled_listen_is_labeled_stop():
+        subject = SilenceBasedListener(MagicMock(), 10)
+        latest_frame = MagicMock()
+        latest_frame.rms = 0
+
+        actual = subject._determine_frame_state(latest_frame, [AnnotatedFrame(MagicMock(), FrameStateEnum.LISTEN)])
+
+        assert actual == FrameStateEnum.STOP

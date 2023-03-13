@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import List
 
-from donkey_ears.audio.base import AudioSample
+from donkey_ears.audio.base import AudioSample, BaseAudioSource
 from donkey_ears.listeners.base import BaseListener
 
 
@@ -111,3 +111,24 @@ class BaseStateListener(BaseListener):
         audio_sample = self._post_process_final_audio_sample(audio_sample)
 
         return audio_sample
+
+
+class SilenceBasedListener(BaseStateListener):
+    """
+    Listen to the audio source and collect a sample that exceeds a silence threshold.
+
+    Do not start recording until the sample's RMS exceeds the threshold given (``silence_threshold_rms``).  Once
+    recording, continue recording until the new sample drops below the threshold.
+    """
+
+    def __init__(self, source: BaseAudioSource, silence_threshold_rms: int = 500):
+        super().__init__(source)
+        self.silence_threshold_rms = silence_threshold_rms
+
+    def _determine_frame_state(self, latest_frame: AudioSample, all_frames: List[AnnotatedFrame]) -> FrameStateEnum:
+        if latest_frame.rms > self.silence_threshold_rms:
+            return FrameStateEnum.LISTEN
+        if len(all_frames) == 0 or all_frames[-1].state == FrameStateEnum.PAUSE:
+            # Haven't started listening yet
+            return FrameStateEnum.PAUSE
+        return FrameStateEnum.STOP
