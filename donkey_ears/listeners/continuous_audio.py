@@ -120,8 +120,8 @@ class ContinuousListener:
             if result is self.END_OF_LISTENER:
                 raise NoAudioAvailable()
             return result
-        except queue.Empty:
-            raise NoAudioAvailable()
+        except queue.Empty as exc:
+            raise NoAudioAvailable() from exc
 
     def __iter__(self):
         for _ in itertools.count():

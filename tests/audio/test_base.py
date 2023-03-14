@@ -96,7 +96,7 @@ class TestAudioSample:  # pylint: disable=too-few-public-methods
 class TestBaseAudioSource:  # pylint: disable=too-few-public-methods
     @pytest.mark.parametrize("seconds", [7, 11.12])
     def test_seconds_to_frame(self, seconds):
-        class SubjectBaseAudioSource(base.BaseAudioSource):
+        class SubjectBaseAudioSource(base.BaseAudioSource):  # pylint: disable=abstract-method
             @property
             def frame_rate(self) -> int:
                 return 44100
@@ -111,7 +111,7 @@ class TestBaseAudioSource:  # pylint: disable=too-few-public-methods
     def test_read_seconds_with_number_given(self, seconds):
         frame_rate = 44100
 
-        class SubjectBaseAudioSource(base.BaseAudioSource):
+        class SubjectBaseAudioSource(base.BaseAudioSource):  # pylint: disable=abstract-method
             @property
             def frame_rate(self) -> int:
                 return frame_rate

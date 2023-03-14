@@ -99,16 +99,18 @@ class TestContinuousListener:
         listener = MagicMock()
         listener.read = MagicMock(side_effect=[AudioSample.generate_silence(1, 44100), EOFError])
         subject = ContinuousListener(listener)
-        subject._recordings = MagicMock()
-        subject._recordings.get = MagicMock()
-        subject._recordings.empty = MagicMock(return_value=False)
+        subject._recordings = MagicMock()  # pylint: disable=protected-access
+        subject._recordings.get = MagicMock()  # pylint: disable=protected-access
+        subject._recordings.empty = MagicMock(return_value=False)  # pylint: disable=protected-access
         subject.start()
         subject.stop()
 
         subject.read(wait)
 
-        subject._recordings.get.assert_called_once()
-        subject._recordings.get.assert_called_once_with(expected_blocking, expected_timeout)
+        subject._recordings.get.assert_called_once()  # pylint: disable=protected-access
+        subject._recordings.get.assert_called_once_with(  # pylint: disable=protected-access
+            expected_blocking, expected_timeout
+        )
 
     @staticmethod
     def test_iterating_over_listener_returns_samples_recorded():
