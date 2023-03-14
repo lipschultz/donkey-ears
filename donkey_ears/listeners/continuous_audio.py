@@ -1,6 +1,7 @@
 import itertools
 import queue
 import threading
+from contextlib import contextmanager
 from typing import Optional, Union
 
 from loguru import logger
@@ -74,6 +75,9 @@ class ContinuousListener:
     def _store_recording(self, audio: AudioSample) -> None:
         self._recordings.put(audio)
 
+    def _store_recording_stopped(self) -> None:
+        self._recordings.put(self.END_OF_LISTENER)
+
     def _listen(self):
         """
         The method that does the actual listening and adding the audio to a queue.
@@ -91,7 +95,7 @@ class ContinuousListener:
             except Exception as exc:
                 logger.exception(f"Continuous listener received exception: {type(exc)}")
                 break
-        self._store_recording(self.END_OF_LISTENER)  # TODO: Does this also need to be added when ``stop`` is called?
+        self._store_recording_stopped()
 
     def read(self, wait: Union[int, float, bool] = True) -> AudioSample:
         """
@@ -126,3 +130,15 @@ class ContinuousListener:
                 yield frame
             except NoAudioAvailable:
                 return None
+
+    @contextmanager
+    def listen(self):
+        """
+        Context manager to start listening, then stop listening at the end of the ``with`` block.  It provides an
+        object with ``read`` and ``empty`` methods, and the object is iterable.
+        """
+        self.start()
+        try:
+            yield self
+        finally:
+            self.stop()

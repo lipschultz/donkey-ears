@@ -123,3 +123,32 @@ class TestContinuousListener:
         results = list(subject)
 
         assert results == [AudioSample.generate_silence(1, 44100), AudioSample.generate_silence(2, 44100)]
+
+    @staticmethod
+    def test_context_manager():
+        class SubjectContinuousListen(ContinuousListener):
+            def __init__(self, listen):
+                super().__init__(listen)
+                self.start_call_count = 0
+                self.stop_call_count = 0
+
+            def start(self):
+                self.start_call_count += 1
+                super().start()
+
+            def stop(self, timeout=None):
+                self.stop_call_count += 1
+                super().stop(timeout)
+
+        listener = MagicMock()
+        listener.read = MagicMock(
+            side_effect=[AudioSample.generate_silence(1, 44100), AudioSample.generate_silence(2, 44100), EOFError]
+        )
+        subject = SubjectContinuousListen(listener)
+
+        with subject.listen() as continuous_listen:
+            results = list(continuous_listen)
+
+        assert results == [AudioSample.generate_silence(1, 44100), AudioSample.generate_silence(2, 44100)]
+        assert subject.start_call_count == 1
+        assert subject.stop_call_count == 1
