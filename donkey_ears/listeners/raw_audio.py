@@ -25,8 +25,8 @@ class BaseListener:
         """
         try:
             return self.source.read(n_frames)
-        except EOFError:
-            raise NoAudioAvailable()
+        except EOFError as exc:
+            raise NoAudioAvailable() from exc
 
     def __iter__(self):
         for _ in itertools.count():
@@ -175,10 +175,9 @@ class TimeBasedListener(BaseStateListener):
 
     def _determine_frame_state(self, latest_frame: AudioSample, all_frames: List[AnnotatedFrame]) -> FrameStateEnum:
         duration = sum(frame.frame.n_seconds for frame in all_frames) + latest_frame.n_seconds
-        print(f"{duration=}, {self.total_duration=}, {latest_frame.n_seconds=}, {len(latest_frame)=}")
         if len(latest_frame) == 0:
             return FrameStateEnum.PAUSE
-        elif duration <= self.total_duration or len(all_frames) == 0:
+        if duration <= self.total_duration or len(all_frames) == 0:
             return FrameStateEnum.LISTEN
         return FrameStateEnum.STOP
 
