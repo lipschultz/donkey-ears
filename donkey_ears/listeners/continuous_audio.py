@@ -6,11 +6,7 @@ from typing import Optional, Union
 from loguru import logger
 
 from donkey_ears.audio.base import AudioSample
-from donkey_ears.listeners.raw_audio import BaseListener
-
-
-class NoAudioAvailable(Exception):
-    pass
+from donkey_ears.listeners.raw_audio import BaseListener, NoAudioAvailable
 
 
 class ListenerRunningError(Exception):
@@ -85,11 +81,10 @@ class ContinuousListener:
                 audio = self._get_audio()
                 # logger.debug(f"Received audio: {audio}")
                 self._store_recording(audio)
-            except EOFError:
-                logger.info("Continuous listener reached end of file")
+            except (EOFError, NoAudioAvailable):
+                logger.info("No audio available")
                 break
             except StopIteration:
-                logger.info("Continuous listener received StopIteration")
                 break
             except Exception as exc:
                 logger.exception(f"Continuous listener received exception: {type(exc)}")

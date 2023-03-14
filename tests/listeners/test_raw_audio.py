@@ -8,6 +8,7 @@ from donkey_ears.listeners.raw_audio import (
     BaseListener,
     BaseStateListener,
     FrameStateEnum,
+    NoAudioAvailable,
     SilenceBasedListener,
     TimeBasedListener,
 )
@@ -41,7 +42,7 @@ class TestBaseListener:
         audio_source.read = MagicMock(side_effect=EOFError)
         subject = BaseListener(audio_source)
 
-        with pytest.raises(EOFError):
+        with pytest.raises(NoAudioAvailable):
             subject.read()
 
     @staticmethod

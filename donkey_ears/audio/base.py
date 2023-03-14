@@ -417,6 +417,8 @@ class BaseAudioSource:
         Retrieve up to ``n_frames`` of audio data from the audio source.  Depending on implementation, it may block
         until all frames are read or just return what has been retrieved.  Audio is returned in an ``AudioSample``
         object.
+
+        If reading after the end of the file, EOFError will be raised.
         """
         raise NotImplementedError
 

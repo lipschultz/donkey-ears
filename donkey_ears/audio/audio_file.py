@@ -46,5 +46,7 @@ class AudioFile(BaseAudioSource):
         Read frames of audio from the file and return them in an ``AudioSample``.
 
         If ``n_frames` is ``None``, read all remaining frames in the file.
+
+        If reading after the end of the file, EOFError will be raised.
         """
         return AudioSample(self.read_pydub(n_frames))

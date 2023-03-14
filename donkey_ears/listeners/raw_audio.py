@@ -7,6 +7,10 @@ from typing import List
 from donkey_ears.audio.base import AudioSample, BaseAudioSource, TimeType
 
 
+class NoAudioAvailable(Exception):
+    pass
+
+
 class BaseListener:
     def __init__(self, source: BaseAudioSource):
         self.source = source
@@ -16,14 +20,19 @@ class BaseListener:
         Read and return an audio sample from the source.
 
         ``n_frames`` is the number of frames to read from the source.
+
+        Raises ``NoAudioAvailable`` if there is no audio available from the source (e.g. end of file was reached).
         """
-        return self.source.read(n_frames)
+        try:
+            return self.source.read(n_frames)
+        except EOFError:
+            raise NoAudioAvailable()
 
     def __iter__(self):
         for _ in itertools.count():
             try:
                 yield self.read()
-            except EOFError:
+            except NoAudioAvailable:
                 return None
 
 
