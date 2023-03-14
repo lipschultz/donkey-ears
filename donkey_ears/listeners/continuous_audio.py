@@ -18,6 +18,8 @@ class ContinuousListener:
     Always listen to the source, storing audio segments to be accessed later (via ``read``).
     """
 
+    END_OF_LISTENER = object()
+
     def __init__(self, listener: BaseListener):
         self.listener = listener
 
@@ -89,6 +91,7 @@ class ContinuousListener:
             except Exception as exc:
                 logger.exception(f"Continuous listener received exception: {type(exc)}")
                 break
+        self._store_recording(self.END_OF_LISTENER)  # TODO: Does this also need to be added when ``stop`` is called?
 
     def read(self, wait: Union[int, float, bool] = True) -> AudioSample:
         """
@@ -103,21 +106,18 @@ class ContinuousListener:
         * When ``True`` (default), wait indefinitely for an audio sample.
 
         """
-        if not self.is_listening and self.empty():
+        if not self.is_listening and self._recordings.empty():
             raise NoAudioAvailable()
 
         blocking = not (wait is False or wait == 0)
         timeout = wait if isinstance(wait, (int, float)) and not isinstance(wait, bool) and wait > 0 else None
         try:
-            return self._recordings.get(blocking, timeout)
+            result = self._recordings.get(blocking, timeout)
+            if result is self.END_OF_LISTENER:
+                raise NoAudioAvailable()
+            return result
         except queue.Empty:
             raise NoAudioAvailable()
-
-    def empty(self) -> bool:
-        """
-        Returns True if there is nothing currently available to read, False otherwise.
-        """
-        return self._recordings.empty()
 
     def __iter__(self):
         for _ in itertools.count():
