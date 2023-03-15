@@ -43,6 +43,7 @@ class Listener:
                 yield self.read()
             except NoAudioAvailable:
                 return None
+        return None
 
     def continuous_listener(self) -> "ContinuousListener":
         return ContinuousListener(self)
@@ -171,6 +172,7 @@ class ContinuousListener:
                 yield frame
             except NoAudioAvailable:
                 return None
+        return None
 
     @contextmanager
     def listen(self):
