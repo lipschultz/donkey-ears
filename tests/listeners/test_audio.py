@@ -59,6 +59,37 @@ class TestListener:
 
         assert results == [AudioSample.generate_silence(1, 44100), AudioSample.generate_silence(2, 44100)]
 
+    @staticmethod
+    def test_getting_continuous_listener():
+        audio_source = MagicMock()
+        audio_source.read = MagicMock(
+            side_effect=[AudioSample.generate_silence(1, 44100), AudioSample.generate_silence(2, 44100), EOFError]
+        )
+        listener = Listener(audio_source)
+
+        subject = listener.continuous_listener()
+
+        assert isinstance(subject, ContinuousListener)
+        assert subject.listener is listener
+        assert not subject.is_listening
+        with pytest.raises(NoAudioAvailable):
+            subject.read()
+
+    @staticmethod
+    def test_getting_continuous_listener_as_part_of_context_manager():
+        audio_source = MagicMock()
+        audio_source.read = MagicMock(
+            side_effect=[AudioSample.generate_silence(1, 44100), AudioSample.generate_silence(2, 44100), EOFError]
+        )
+        subject = Listener(audio_source)
+
+        with subject.continuous_listener() as clistener:
+            assert isinstance(clistener, ContinuousListener)
+            assert clistener.listener is subject
+            assert list(clistener) == [AudioSample.generate_silence(1, 44100), AudioSample.generate_silence(2, 44100)]
+
+        assert not clistener.is_listening
+
 
 class TestContinuousListener:
     @staticmethod
@@ -215,6 +246,22 @@ class TestContinuousListener:
         assert results == [AudioSample.generate_silence(1, 44100), AudioSample.generate_silence(2, 44100)]
         assert subject.start_call_count == 1
         assert subject.stop_call_count == 1
+
+    @staticmethod
+    def test_using_in_context_manager():
+        audio_source = MagicMock()
+        audio_source.read = MagicMock(
+            side_effect=[AudioSample.generate_silence(1, 44100), AudioSample.generate_silence(2, 44100), EOFError]
+        )
+        listener = Listener(audio_source)
+        subject = ContinuousListener(listener)
+
+        with subject.listen() as clistener:
+            assert clistener is subject
+            assert clistener.listener is listener
+            assert list(clistener) == [AudioSample.generate_silence(1, 44100), AudioSample.generate_silence(2, 44100)]
+
+        assert not clistener.is_listening
 
 
 class TestBaseStateListener:

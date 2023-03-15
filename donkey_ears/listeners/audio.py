@@ -44,6 +44,9 @@ class Listener:
             except NoAudioAvailable:
                 return None
 
+    def continuous_listener(self) -> "ContinuousListener":
+        return ContinuousListener(self)
+
 
 class ContinuousListener:
     """
@@ -89,6 +92,13 @@ class ContinuousListener:
         return_value = timeout is None or not self._thread.is_alive()
         self._thread = None
         return return_value
+
+    def __enter__(self):
+        self.start()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.stop()
 
     @property
     def is_listening(self) -> bool:
