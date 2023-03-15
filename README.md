@@ -1,6 +1,7 @@
 # Donkey Ears
 
-A package that provides a common interface to various speech recognition libraries.
+A package that provides a common interface to various speech recognition libraries and tools for streaming audio from a
+microphone and transcribing it.
 
 ## Installation
 
@@ -40,6 +41,99 @@ Many engines require a model for the language you want to transcribe.
 You must find and download the model before the engine can be used (it will be required in the class's initializer).
 
 ## Quick Start
+
+### Transcribing a File
+
+Open a file and transcribe all of it using Whisper:
+
+```python
+from donkey_ears.audio.audio_file import AudioFile
+from donkey_ears.speech_to_text.whisper import WhisperSpeechToText
+
+a_file = AudioFile("tests/resources/english-one_two_three.wav")
+sample = a_file.read(None)
+stt_whisper = WhisperSpeechToText("base", download_root="/path/to/models/whisper")
+
+print(stt_whisper.transcribe_audio(sample))
+```
+
+will print:
+
+```
+ 1, 2, 3
+```
+
+Open a file and get detailed transcript information using Vosk:
+
+```python
+from donkey_ears.audio.audio_file import AudioFile
+from donkey_ears.speech_to_text.vosk import VoskSpeechToText
+
+a_file = AudioFile('tests/resources/english-one_two_three.wav')
+sample = a_file.read(None)
+stt_vosk = VoskSpeechToText("/path/to/models/vosk/vosk-model-small-en-us-0.15")
+
+transcript = stt_vosk.transcribe_audio_detailed(sample, n_transcriptions=3, segment_timestamps=True)
+print(transcript)
+```
+
+will print:
+
+```
+DetailedTranscripts(
+    transcripts=[
+        DetailedTranscript(
+            text="one two three",
+            confidence=246.324112,
+            segments=[
+                TranscriptSegment(text="one", start_time=11.03975, end_time=11.51975),
+                TranscriptSegment(text="two", start_time=11.99975, end_time=12.53975),
+                TranscriptSegment(text="three", start_time=12.95975, end_time=13.58975),
+            ],
+        )
+    ],
+    raw_model_response={
+        "alternatives": [
+            {
+                "confidence": 246.324112,
+                "result": [
+                    {"start": 11.03975, "end": 11.51975, "word": "one"},
+                    {"start": 11.99975, "end": 12.53975, "word": "two"},
+                    {"start": 12.95975, "end": 13.58975, "word": "three"},
+                ],
+                "text": "one two three",
+            }
+        ]
+    },
+)
+```
+
+### Transcribing from the Microphone
+
+Record segments of audio (separated by silence) and transcribe each segment:
+
+```python
+from donkey_ears.audio.microphone import Microphone
+from donkey_ears.listeners.audio import SilenceBasedListener
+from donkey_ears.listeners.transcriber import Transcriber
+from donkey_ears.speech_to_text.whisper import WhisperSpeechToText
+
+mic = Microphone()
+silence_rms = mic.read_seconds(3).rms  # Get the rms for silence / background noise
+silence_listener = SilenceBasedListener(mic, silence_threshold_rms=silence_rms)
+
+stt_whisper = WhisperSpeechToText("base", download_root="/path/to/models/whisper")
+
+with silence_listener.continuous_listener() as listener:
+    transcriber = Transcriber(listener, stt_whisper)
+    for text in transcriber:
+        print(f"Heard: {text!r}")
+```
+
+To get detailed transcriptions instead of just text, use `transcriber.iter_detailed(...)` for the for-loop instead of
+just `transcriber`.
+
+## Documentation
 
 ### Getting Audio
 
@@ -98,7 +192,8 @@ Vosk: 'one two three'
 Whisper: ' 1, 2, 3'
 ```
 
-You may get a warning printed to standard error for Whisper. They are safe to ignore.
+You may get a warning printed to standard error for Whisper.
+They should be safe to ignore.
 
 As you can see, each speech-to-text library may transcribe text differently.
 
@@ -174,14 +269,15 @@ microphone.
 A listener class will listen to the audio until a certain condition is met, then return the audio recorded as an
 `AudioSample` instance.
 The exact condition to wait for depends on the listener.
-For example, the `donkey_ears.listeners.prebuilt.TimeBasedListener` class will record audio for a specified duration
+For example, the `donkey_ears.listeners.audio.TimeBasedListener` class will record audio for a specified duration
 whereas the `SilenceBasedListener` will wait until a chunk of audio is below a specified rms.
-Other listeners can be constructed by inheriting from the `donkey_ears.listeners.base.BaseListener` class.
+Other listeners can be constructed by inheriting from the `donkey_ears.listeners.base.BaseListener` class or
+`BaseStateListener`.
 
 The example below will record audio until talking stops (i.e. the rms drops to the level of non-talking).
 ```python
 from donkey_ears.audio.microphone import Microphone
-from donkey_ears.listeners.prebuilt import SilenceBasedListener
+from donkey_ears.listeners.audio import SilenceBasedListener
 
 mic = Microphone()
 
@@ -191,35 +287,45 @@ non_speaking_threshold = non_speaking_audio.rms
 
 # Create the listener
 listener = SilenceBasedListener(mic, non_speaking_threshold)
-speech = listener.listen()
+speech = listener.read()
 # `speech` can then be given to a speech-to-text instance for transcription
 ```
 
-Note that any audio between calls to `listen` will not be recorded.
-To constantly listen, create a background listener, which will constantly record audio samples using the listener it was
+Note that any audio between calls to `read` will not be recorded.
+To constantly listen, create a continuous listener, which will record audio samples using the listener it was
 created from.
-The samples are added to a queue and can be retrieved using the background listener's `get` method.
-To stop the background listener, call the `stop` method.
+The samples are stored and can be retrieved using the continuous listener's `read` method.
 
 ```python
 from donkey_ears.audio.microphone import Microphone
-from donkey_ears.listeners.prebuilt import SilenceBasedListener
+from donkey_ears.listeners.audio import SilenceBasedListener
+from donkey_ears.listeners.transcriber import Transcriber
+from donkey_ears.speech_to_text.whisper import WhisperSpeechToText
 
 mic = Microphone()
+stt_whisper = WhisperSpeechToText("base", download_root="/path/to/models/whisper")
 
-# Determine what the rms when there isn't any speaking
+# Determine the rms when there isn't any speaking
 non_speaking_audio = mic.read_seconds(2)
 non_speaking_threshold = non_speaking_audio.rms
 
 # Create the listener and background listener
 listener = SilenceBasedListener(mic, non_speaking_threshold)
-bg_listener = listener.background_listen()
+with listener.continuous_listener() as clistener:
+    transcriber = Transcriber(clistener, stt_whisper)
 
-first_speech = bg_listener.get()
-# process `first_speech`, perhaps by transcribing it
+    first_transcript = transcriber.read()
+    # process `first_transcript`, which will be a string transcription of the audio
 
-second_speech = bg_listener.get()
-# ...
+    second_transcript = transcriber.read()
+    # ...
 
-bg_listener.stop()
+    # Or process as a stream:
+    for transcript in transcriber:
+        # process `transcript`
+        pass
 ```
+
+Instances of the `Transcriber` class can act as an iterable.
+It will wait until audio is available from the provided `listener`, send it to the provided speech-to-text object, then
+yield the resulting text transcription.
