@@ -44,7 +44,7 @@ You must find and download the model before the engine can be used (it will be r
 
 ### Transcribing a File
 
-Open a file and transcribe all of it using Whisper:
+Open a file and transcribe all of it (using Whisper, but any model will work):
 
 ```python
 from donkey_ears.audio.audio_file import AudioFile
@@ -63,7 +63,7 @@ will print:
  1, 2, 3
 ```
 
-Open a file and get detailed transcript information using Vosk:
+Open a file and get detailed transcript information (using Vosk, but any model will work):
 
 ```python
 from donkey_ears.audio.audio_file import AudioFile
@@ -110,7 +110,7 @@ DetailedTranscripts(
 
 ### Transcribing from the Microphone
 
-Record segments of audio (separated by silence) and transcribe each segment:
+Record segments of audio (separated by silence) and transcribe each segment (using Whisper, but any model will work):
 
 ```python
 from donkey_ears.audio.microphone import Microphone
