@@ -16,7 +16,13 @@ class AudioFile(BaseAudioSource):
         return int(self._audio_data.frame_count())
 
     def jump_to_frame(self, frame_number: int):
-        assert isinstance(frame_number, int) and 0 <= frame_number < self.__max_audio_frames()
+        if not isinstance(frame_number, int):
+            raise TypeError(f"`frame_number` must be an integer, received {frame_number!r} (type={type(frame_number)})")
+        if frame_number < 0 or frame_number >= self.__max_audio_frames():
+            raise ValueError(
+                f"`frame_number` must be an integer between 0 and {self.__max_audio_frames()} (the number of frames in the file), received {frame_number!r}"
+            )
+
         self.frame_index = frame_number
 
     def reset(self):
@@ -32,10 +38,12 @@ class AudioFile(BaseAudioSource):
 
         if n_frames is None:
             n_frames = self.__max_audio_frames() - self.frame_index
-
-        assert (
-            isinstance(n_frames, int) and n_frames > 0
-        ), f"n_frames must be an integer greater than zero, got {n_frames!r}"
+        if not isinstance(n_frames, int):
+            raise TypeError(
+                f"`n_frames` must be an integer greater than zero, received {n_frames!r} (type={type(n_frames)})"
+            )
+        if n_frames == 0:
+            raise ValueError(f"`n_frames` must be an integer greater than zero, received {n_frames!r}")
 
         read_data = self._audio_data.get_sample_slice(self.frame_index, self.frame_index + n_frames)
         self.frame_index += n_frames

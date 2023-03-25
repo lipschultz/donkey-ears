@@ -74,9 +74,12 @@ class Microphone(BaseAudioSource):
         return self.seconds_to_frame(self.DEFAULT_READ_DURATION_SECONDS)
 
     def read_bytes(self, n_frames: int) -> bytes:
-        assert (
-            isinstance(n_frames, int) and n_frames > 0
-        ), f"n_frames must be an integer greater than zero, got {n_frames!r}"
+        if not isinstance(n_frames, int):
+            raise TypeError(
+                f"`n_frames` must be an integer greater than zero, received {n_frames!r} (type={type(n_frames)})"
+            )
+        if n_frames == 0:
+            raise ValueError(f"`n_frames` must be an integer greater than zero, received {n_frames!r}")
 
         pa_instance = pyaudio.PyAudio()
         try:

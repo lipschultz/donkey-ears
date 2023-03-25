@@ -58,7 +58,8 @@ class SphinxSpeechToText(BaseSpeechToText):
         n_transcriptions: int = 1,
         segment_timestamps: bool = True,
     ) -> DetailedTranscripts:
-        assert n_transcriptions == 1
+        if n_transcriptions != 1:
+            raise NotImplementedError(f"Currently only one transcript can be retrieved; {n_transcriptions} requested.")
 
         self._recognizer.start_utt()
         self._recognizer.process_raw(
