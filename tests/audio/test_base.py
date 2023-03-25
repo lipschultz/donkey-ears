@@ -29,6 +29,13 @@ class TestAudioSample:  # pylint: disable=too-few-public-methods
         assert subject.n_channels == 1
         assert (subject.to_numpy() == np.zeros(44100)).all()
 
+    def test_generating_zero_second_silence(self):
+        subject = base.AudioSample.generate_silence(0, 44100)
+
+        assert subject.frame_rate == 44100
+        assert subject.n_channels == 1
+        assert subject.n_frames == 0
+
     def test_equals_operator_is_true_when_same_audio(self):
         subject1 = base.AudioSample.from_numpy((10_000 * np.sin(np.linspace(0, 4, 500_000))).astype("int16"), 44100)
         subject2 = base.AudioSample.from_numpy((10_000 * np.sin(np.linspace(0, 4, 500_000))).astype("int16"), 44100)

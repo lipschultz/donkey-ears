@@ -15,11 +15,14 @@ class AudioSample:  # pylint: disable=too-many-public-methods
     def __init__(self, data: AudioSegment):
         self.data = data
 
-    def __eq__(self, other: "AudioSample") -> bool:
+    def __eq__(self, other) -> bool:
         """
         Returns True if other object is an ``AudioSample`` object and they have the same data.
         """
-        return isinstance(other, AudioSample) and self.data == other.data
+        if not isinstance(other, AudioSample):
+            return NotImplemented
+
+        return self.data == other.data
 
     def __len__(self):
         """
@@ -53,7 +56,7 @@ class AudioSample:  # pylint: disable=too-many-public-methods
         """
         # TODO: Support negative values for slices.  Confirm start_stop <= stop.
         if stop is None:
-            start = 0
+            start = 0  # type: TimeType
             stop = start_stop
         else:
             start = start_stop
@@ -61,7 +64,7 @@ class AudioSample:  # pylint: disable=too-many-public-methods
         # pydub slices in milliseconds
         start_ms = start * 1000
         stop_ms = stop * 1000
-        return AudioSample(self.data[start_ms:stop_ms])
+        return AudioSample(self.data[int(start_ms) : int(stop_ms)])
 
     def slice_frame(self, start_stop: int, stop: Optional[int] = None) -> "AudioSample":
         """
@@ -251,7 +254,7 @@ class AudioSample:  # pylint: disable=too-many-public-methods
     def from_numpy_and_sample(cls, data: np.ndarray, source_sample: "AudioSample") -> "AudioSample":
         return cls.from_numpy(data, source_sample.frame_rate)
 
-    def play(self, delta_gain_dB: float = None) -> None:  # pylint: disable=invalid-name
+    def play(self, delta_gain_dB: Optional[float] = None) -> None:  # pylint: disable=invalid-name
         """
         Play the audio sample.
 

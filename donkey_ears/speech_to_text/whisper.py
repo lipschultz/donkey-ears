@@ -14,7 +14,7 @@ class WhisperSpeechToText(BaseSpeechToText):
         self,
         model_name: str,
         device: Optional[Union[str, torch.device]] = None,
-        download_root: Union[str, Path] = None,
+        download_root: Optional[Union[str, Path]] = None,
         in_memory: bool = False,
     ):
         super().__init__()
@@ -75,4 +75,4 @@ class WhisperSpeechToText(BaseSpeechToText):
 
     def detect_language(self, audio: AudioSample) -> str:
         probabilities = self.detect_language_probabilities(audio)
-        return max(probabilities, key=probabilities.get)
+        return max(probabilities, key=probabilities.get)  # type: ignore

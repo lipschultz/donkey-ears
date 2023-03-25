@@ -49,18 +49,22 @@ class Listener:
         return ContinuousListener(self)
 
 
+class _EndOfListener:
+    """Used to mark when the listener has stopped listening and no more audio should be expected."""
+
+
 class ContinuousListener:
     """
     Always listen to the source, storing audio segments to be accessed later (via ``read``).
     """
 
-    END_OF_LISTENER = object()
+    END_OF_LISTENER = _EndOfListener()
 
     def __init__(self, listener: Listener):
         self.listener = listener
 
-        self._thread = None
-        self._recordings = queue.SimpleQueue()
+        self._thread = None  # type: Optional[threading.Thread]
+        self._recordings = queue.SimpleQueue()  # type: queue.SimpleQueue[Union[AudioSample, _EndOfListener]]
         self._please_shutdown_thread = False
 
     def start(self) -> None:
@@ -89,8 +93,11 @@ class ContinuousListener:
         Audio already recorded will still be available through the ``read`` method.
         """
         self._please_shutdown_thread = True
-        self._thread.join(timeout)
-        return_value = timeout is None or not self._thread.is_alive()
+        if self._thread is not None:
+            self._thread.join(timeout)
+            return_value = timeout is None or not self._thread.is_alive()
+        else:
+            return_value = True
         self._thread = None
         return return_value
 
@@ -159,7 +166,7 @@ class ContinuousListener:
         timeout = wait if isinstance(wait, (int, float)) and not isinstance(wait, bool) and wait > 0 else None
         try:
             result = self._recordings.get(blocking, timeout)
-            if result is self.END_OF_LISTENER:
+            if isinstance(result, _EndOfListener):
                 raise NoAudioAvailable()
             return result
         except queue.Empty as exc:
@@ -230,8 +237,9 @@ class BaseStateListener(Listener):
         If the end of the source is reached, then listening will end regardless of what ``_determine_frame_state`` will
         return.
         """
-        all_frames = []
+        all_frames = []  # type: List[AnnotatedFrame]
 
+        frame = None  # type: Optional[AudioSample]
         frame = self.source.read(n_frames)
         frame = self._pre_process_individual_audio_sample(frame)
         frame_state = self._determine_frame_state(frame, all_frames)
@@ -260,7 +268,9 @@ class BaseStateListener(Listener):
         """
         saved_frames = [
             frame
-            for frame, previous_frame in zip(all_frames, [AnnotatedFrame(None, None)] + all_frames)
+            for frame, previous_frame in zip(
+                all_frames, [AnnotatedFrame(AudioSample.generate_silence(0, 44100), FrameStateEnum.PAUSE)] + all_frames
+            )
             if frame.state == FrameStateEnum.LISTEN or previous_frame.state == FrameStateEnum.LISTEN
         ]
         return saved_frames
@@ -269,7 +279,11 @@ class BaseStateListener(Listener):
         """
         Combine audio frames into a single audio sample.
         """
-        return AudioSample.from_iterable(frame.frame for frame in all_frames)
+        sample = AudioSample.from_iterable(frame.frame for frame in all_frames)
+        if sample is None:
+
+            return AudioSample.generate_silence(0, self.source.frame_rate)
+        return sample
 
     def _post_process_final_audio_sample(self, audio: AudioSample) -> AudioSample:
         """

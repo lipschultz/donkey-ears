@@ -450,11 +450,14 @@ class TestBaseStateListener:
     @staticmethod
     def test_joining_audio_frames_when_no_frames_exist():
         frames = []
-        subject = BaseStateListener(MagicMock())
+        mock_source = MagicMock()
+        mock_source.frame_rate = 12345
+        subject = BaseStateListener(mock_source)
 
         actual = subject._join_audio_samples(frames)
 
-        assert actual is None
+        assert isinstance(actual, AudioSample)
+        assert actual.n_frames == 0
 
     @staticmethod
     def test_read_calls_other_methods():

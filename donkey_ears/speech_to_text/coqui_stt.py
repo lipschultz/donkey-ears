@@ -35,9 +35,8 @@ class CoquiSpeechToText(BaseSpeechToText):
             if lm_alpha_beta is not None:
                 self._model.setScorerAlphaBeta(lm_alpha_beta[0], lm_alpha_beta[1])
 
-        if self.hotword_boost:
-            for word, boost in hotword_boost.items():
-                self._model.addHotWord(word, boost)
+        for word, boost in self.hotword_boost.items():
+            self._model.addHotWord(word, boost)
 
     @property
     def frame_rate(self) -> int:

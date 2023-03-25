@@ -28,7 +28,9 @@ class Microphone(BaseAudioSource):
     def get_device_names(cls) -> List[str]:
         pa_instance = pyaudio.PyAudio()
         try:
-            return [pa_instance.get_device_info_by_index(i).get("name") for i in range(pa_instance.get_device_count())]
+            return [
+                str(pa_instance.get_device_info_by_index(i).get("name")) for i in range(pa_instance.get_device_count())
+            ]
         finally:
             pa_instance.terminate()
 
