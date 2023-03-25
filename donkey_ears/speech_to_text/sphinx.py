@@ -19,9 +19,9 @@ class SphinxSpeechToText(BaseSpeechToText):
     BIT_DEPTH = 16
     N_CHANNELS = 1
 
-    START_TOKEN = "<s>"
-    END_TOKEN = "</s>"
-    SILENCE_TOKEN = "<sil>"
+    START_TOKEN = "<s>"  # nosec hardcoded_password_string
+    END_TOKEN = "</s>"  # nosec hardcoded_password_string
+    SILENCE_TOKEN = "<sil>"  # nosec hardcoded_password_string
 
     def __init__(
         self,

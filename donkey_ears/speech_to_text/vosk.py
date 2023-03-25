@@ -13,7 +13,7 @@ class VoskSpeechToText(BaseSpeechToText):
     BIT_DEPTH = 16
     N_CHANNELS = 1
 
-    UNRECOGNIZED_TOKEN = "[unk]"
+    UNRECOGNIZED_TOKEN = "[unk]"  # nosec hardcoded_password_string
 
     def __init__(
         self,
