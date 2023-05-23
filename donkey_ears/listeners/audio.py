@@ -281,7 +281,6 @@ class BaseStateListener(Listener):
         """
         sample = AudioSample.from_iterable(frame.frame for frame in all_frames)
         if sample is None:
-
             return AudioSample.generate_silence(0, self.source.frame_rate)
         return sample
 
