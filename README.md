@@ -31,8 +31,7 @@ Once you have installed the non-Python dependencies and any optional dependencie
 
 ## Speech to Text Models
 
-Donkey Ears provides support for four speech to text engines:
-* [Coqui STT](https://stt.readthedocs.io/en/latest/)
+Donkey Ears provides support for these speech to text engines:
 * [PocketSphinx](https://github.com/cmusphinx/pocketsphinx)
 * [Vosk](https://alphacephei.com/vosk/)
 * [Whisper](https://github.com/openai/whisper)

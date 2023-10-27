@@ -7,7 +7,7 @@ readme = "README.md"
 packages = [{include = "donkey_ears"}]
 
 [tool.poetry.dependencies]
-python = ">=3.8,<3.11"
+python = "^3.8"
 pydub = "^0.25.1"
 PyAudio = "^0.2.12"
 matplotlib = "^3.6.1"
@@ -33,10 +33,6 @@ vosk = "^0.3.44"
 
 [tool.poetry.group.sphinx.dependencies]
 pocketsphinx = "^5.0.0"
-
-
-[tool.poetry.group.coqui.dependencies]
-stt = "^1.4.0"
 
 
 [tool.poetry.group.whisper.dependencies]
